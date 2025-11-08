@@ -63,6 +63,19 @@ func (this *User) DoMessage(msg string) {
 		}
 		this.server.mapLock.Unlock()
 
+	} else if len(msg) > 7 && msg[:7] == "rename|" {
+		newName := msg[7:]
+		_, ok := this.server.OnlineMap[newName]
+		if ok {
+			this.SendMsg("当前name已被占用\n")
+		} else {
+			this.server.mapLock.Lock()
+			delete(this.server.OnlineMap, this.Name)
+			this.server.OnlineMap[newName] = this
+			this.server.mapLock.Unlock()
+			this.Name = newName
+			this.SendMsg("您已成功修改为：" + newName + "\n")
+		}
 	} else {
 		this.server.Broadcast(this, msg)
 
