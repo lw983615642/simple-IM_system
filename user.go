@@ -1,6 +1,9 @@
 package main
 
-import "net"
+import (
+	"net"
+	"strings"
+)
 
 type User struct {
 	Name   string
@@ -43,7 +46,7 @@ func (this *User) Offline() {
 	this.server.mapLock.Lock()
 	delete(this.server.OnlineMap, this.Name)
 	this.server.mapLock.Unlock()
-	//广播上线消息
+	//广播下线消息
 	this.server.Broadcast(this, "已下线")
 }
 
@@ -76,6 +79,28 @@ func (this *User) DoMessage(msg string) {
 			this.Name = newName
 			this.SendMsg("您已成功修改为：" + newName + "\n")
 		}
+	} else if len(msg) > 4 && msg[:3] == "to|" {
+		//消息格式“to|zhangsan|xxx”
+		//1.获取对方用户名
+		remotename := strings.Split(msg, "|")[1]
+		if remotename == "" {
+			this.SendMsg("输入格式有误，请使用\"to|zhangsan|你好\"格式\n")
+			return
+		}
+		//2.根据对方用户名获取对象
+		remoteUser, ok := this.server.OnlineMap[remotename]
+		if !ok {
+			this.SendMsg("该用户不存在")
+			return
+		}
+		//3，获取消息内容发送过去
+		content := strings.Split(msg, "|")[2]
+		if content == "" {
+			this.SendMsg("消息内容为空")
+			return
+		}
+		remoteUser.SendMsg(this.Name + "对您说：" + content)
+
 	} else {
 		this.server.Broadcast(this, msg)
 
